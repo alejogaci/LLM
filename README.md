@@ -77,41 +77,6 @@ trend-ai-assistant/
 
 ---
 
-## ☁️ DESPLIEGUE EN AWS
-
-### Security Group:
-```
-Type: Custom TCP
-Port: 5000
-Source: 0.0.0.0/0 (o tu IP)
-```
-
-### Instancia recomendada:
-```
-AMI: Ubuntu Server 22.04 LTS
-Tipo: t3.large (8 GB RAM)
-Storage: 30 GB
-```
-
-### Pasos:
-```bash
-# 1. Conectar
-ssh -i key.pem ubuntu@IP_PUBLICA
-
-# 2. Subir archivos (desde tu PC)
-scp -i key.pem -r trend-ai-assistant ubuntu@IP_PUBLICA:~/
-
-# 3. En el servidor
-cd trend-ai-assistant
-chmod +x *.sh
-./setup.sh
-./run.sh
-
-# 4. Acceder
-# http://IP_PUBLICA:5000
-```
-
----
 
 ## 🔧 VER LOGS
 
