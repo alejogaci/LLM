@@ -154,22 +154,9 @@ ollama list  # Ver instalados
 ./stop.sh     # Detener
 ```
 
-### Testing con GuardTrail:
-1. Configura GuardTrail para monitorear puerto 5000
-2. La app genera tráfico LLM real
-3. Logs disponibles en `logs/`
-
 ---
 
-## 📊 RECURSOS DEL SISTEMA
 
-| Componente | RAM | CPU |
-|-----------|-----|-----|
-| Ollama + Llama 3.2 | ~3-4 GB | 10-50% |
-| Flask App | ~50 MB | 1-5% |
-| **Total** | **~4 GB** | **~15-55%** |
-
----
 
 ## 📞 CHEAT SHEET
 
