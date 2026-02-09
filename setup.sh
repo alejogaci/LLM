@@ -18,8 +18,21 @@ if command -v python3 &> /dev/null; then
     echo -e "${GREEN}✓ Python encontrado: $PYTHON_VERSION${NC}"
 else
     echo -e "${RED}✗ Python 3 no está instalado${NC}"
-    echo "Instala Python 3.8+ y ejecuta este script de nuevo"
+    echo "Instala Python 3.8+ con:"
+    echo "  sudo apt update"
+    echo "  sudo apt install python3 python3-pip python3-venv -y"
     exit 1
+fi
+
+# Verificar que python3-venv está instalado
+echo -e "${YELLOW}Verificando python3-venv...${NC}"
+if python3 -m venv --help &> /dev/null; then
+    echo -e "${GREEN}✓ python3-venv disponible${NC}"
+else
+    echo -e "${RED}✗ python3-venv no está instalado${NC}"
+    echo "Instalando python3-venv..."
+    sudo apt update
+    sudo apt install python3-venv -y
 fi
 
 # 2. Verificar/Instalar Ollama
@@ -36,9 +49,34 @@ fi
 # 3. Crear entorno virtual
 echo ""
 echo -e "${YELLOW}[3/5] Creando entorno virtual Python...${NC}"
-python3 -m venv venv
+
+# Eliminar venv anterior si existe y está corrupto
+if [ -d "venv" ] && [ ! -f "venv/bin/activate" ]; then
+    echo -e "${YELLOW}Eliminando venv corrupto...${NC}"
+    rm -rf venv
+fi
+
+# Crear venv
+if [ ! -d "venv" ]; then
+    python3 -m venv venv
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}✗ Error creando entorno virtual${NC}"
+        echo "Intenta instalar python3-venv manualmente:"
+        echo "  sudo apt install python3-venv -y"
+        exit 1
+    fi
+fi
+
+# Verificar que se creó correctamente
+if [ -f "venv/bin/activate" ]; then
+    echo -e "${GREEN}✓ Entorno virtual creado${NC}"
+else
+    echo -e "${RED}✗ Error: venv/bin/activate no existe${NC}"
+    exit 1
+fi
+
+# Activar entorno virtual
 source venv/bin/activate
-echo -e "${GREEN}✓ Entorno virtual creado${NC}"
 
 # 4. Instalar dependencias Python
 echo ""
