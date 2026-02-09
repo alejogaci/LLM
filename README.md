@@ -1,6 +1,6 @@
-# Trend Micro AI Assistant - LLM con Interfaz Moderna
+#  AI Assistant - LLM con Interfaz Moderna
 
-Aplicación de chat con IA usando modelos libres (Llama, Mistral) con interfaz web sofisticada en colores de Trend Micro.
+Aplicación de chat con IA usando modelos libres (Llama, Mistral) con interfaz web sofisticada.
 
 ---
 
@@ -47,7 +47,7 @@ trend-ai-assistant/
 │
 ├── static/
 │   ├── css/
-│   │   └── style.css      # Estilos Trend Micro
+│   │   └── style.css      # Estilos 
 │   └── js/
 │       └── script.js      # JavaScript
 │
@@ -60,7 +60,7 @@ trend-ai-assistant/
 
 ## ✨ CARACTERÍSTICAS
 
-- 🎨 **Interfaz moderna** con colores Trend Micro (rojos/oscuros)
+- 🎨 **Interfaz moderna** con colores  (rojos/oscuros)
 - ⚡ **Streaming en tiempo real** (respuestas letra por letra)
 - 🤖 **Modelos libres** (Llama 3.2, Mistral, Phi-3)
 - 🔄 **Todo en segundo plano** (no necesitas múltiples terminales)
