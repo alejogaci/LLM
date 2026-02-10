@@ -19,10 +19,34 @@ if [ ! -d "venv" ]; then
     exit 1
 fi
 
-# Crear carpeta de logs
+# Crear carpeta de logs si no existe
 mkdir -p logs
 touch logs/ollama.log
 touch logs/app.log
+
+# Cargar configuración optimizada de Ollama si existe
+if [ -f ~/.ollama_env ]; then
+    source ~/.ollama_env
+    echo -e "${GREEN}✓ Configuración optimizada de Ollama cargada${NC}"
+fi
+
+# Configurar variables de entorno para rendimiento
+export OLLAMA_NUM_PARALLEL=4
+export OLLAMA_MAX_LOADED_MODELS=1
+export OLLAMA_KEEP_ALIVE=5m
+
+# Detectar CPUs y configurar threads
+CPU_CORES=$(nproc)
+NUM_THREADS=$((CPU_CORES / 2))
+if [ $NUM_THREADS -gt 8 ]; then
+    NUM_THREADS=8
+fi
+export OLLAMA_NUM_THREAD=$NUM_THREADS
+
+echo -e "${BLUE}Configuración de rendimiento:${NC}"
+echo -e "  CPUs disponibles: $CPU_CORES"
+echo -e "  Threads para Ollama: $NUM_THREADS"
+echo ""
 
 # Activar entorno virtual
 source venv/bin/activate
@@ -58,7 +82,6 @@ if command -v lsof &> /dev/null; then
     fi
 fi
 
-# Usar python3 explícitamente
 nohup python3 app.py > logs/app.log 2>&1 &
 APP_PID=$!
 sleep 3
@@ -68,9 +91,7 @@ if ps -p $APP_PID > /dev/null 2>&1; then
     echo -e "${GREEN}✓ Aplicación iniciada (PID: $APP_PID)${NC}"
 else
     echo -e "${RED}✗ Error al iniciar aplicación${NC}"
-    echo "Contenido del log:"
-    echo ""
-    cat logs/app.log
+    echo "Revisa logs/app.log para más detalles"
     exit 1
 fi
 
@@ -82,6 +103,11 @@ echo ""
 echo -e "${BLUE}Acceso:${NC}           http://localhost:5000"
 echo -e "${BLUE}Logs Ollama:${NC}      tail -f logs/ollama.log"
 echo -e "${BLUE}Logs App:${NC}         tail -f logs/app.log"
+echo ""
+echo -e "${BLUE}Rendimiento:${NC}"
+echo -e "  ⚡ Usando $NUM_THREADS threads de CPU"
+echo -e "  ⚡ Procesamiento paralelo activado"
+echo -e "  ⚡ Modelo mantenido en memoria"
 echo ""
 echo -e "${YELLOW}Para detener:${NC}     ./stop.sh"
 echo -e "${YELLOW}Para ver estado:${NC}  ./status.sh"
