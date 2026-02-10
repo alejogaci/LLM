@@ -96,45 +96,7 @@ else
     echo -e "${GREEN}✓ Modelo llama3.2 descargado${NC}"
 fi
 
-# ====================================
-# PREGUNTAR API KEY DE TREND MICRO
-# ====================================
-echo -e "${YELLOW}¿Deseas configurar Trend Micro AI Guard? (s/n)${NC}"
-read -p "> " CONFIGURE_GUARD
 
-if [ "$CONFIGURE_GUARD" = "s" ] || [ "$CONFIGURE_GUARD" = "S" ]; then
-    echo ""
-    echo -e "${YELLOW}Ingresa tu Trend Vision One API Key:${NC}"
-    read -p "> " V1_API_KEY
-    
-    if [ -n "$V1_API_KEY" ]; then
-        # Crear archivo de configuración
-        cat > ~/.guardtrail_config << EOF
-# Trend Micro AI Guard Configuration
-export V1_API_KEY="$V1_API_KEY"
-export GUARDTRAIL_APP_NAME="poc-ai-guard"
-EOF
-        
-        # Agregar a .bashrc si no existe
-        if ! grep -q "guardtrail_config" ~/.bashrc; then
-            echo "" >> ~/.bashrc
-            echo "# Trend Micro AI Guard" >> ~/.bashrc
-            echo "if [ -f ~/.guardtrail_config ]; then" >> ~/.bashrc
-            echo "    source ~/.guardtrail_config" >> ~/.bashrc
-            echo "fi" >> ~/.bashrc
-        fi
-        
-        # Cargar configuración
-        source ~/.guardtrail_config
-        
-        echo -e "${GREEN}✓ API Key configurado${NC}"
-        echo -e "${BLUE}  Archivo: ~/.guardtrail_config${NC}"
-    else
-        echo -e "${YELLOW}⚠ API Key no configurado${NC}"
-    fi
-fi
-
-echo ""
 
 echo ""
 echo -e "${GREEN}=========================================${NC}"
