@@ -18,8 +18,6 @@ chmod +x setup.sh
 ./setup.sh
 ```
 
-Durante el setup te pedirá tu **Trend Vision One API Key** (opcional).
-
 ---
 
 ## ▶️ Ejecutar
@@ -48,9 +46,8 @@ PORT=5001 ./run_guardtrail.sh
 ---
 
 
-## ⚙️ Configurar API Key después
+## ⚙️ Configurar API Key 
 
-Si no configuraste durante el setup:
 
 ```bash
 export V1_API_KEY="tu-api-key-aqui"
