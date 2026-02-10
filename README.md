@@ -47,29 +47,6 @@ PORT=5001 ./run_guardtrail.sh
 
 ---
 
-## 🔄 Cambiar entre versiones
-
-### Opción A: Reemplazar archivo
-```bash
-# Usar CON AI Guard
-cp app_guardtrail.py app.py
-./stop.sh && ./run.sh
-
-# Usar SIN AI Guard
-git checkout app.py
-./stop.sh && ./run.sh
-```
-
-### Opción B: Scripts dedicados
-```bash
-# SIN AI Guard
-./run.sh
-
-# CON AI Guard
-./run_guardtrail.sh
-```
-
----
 
 ## ⚙️ Configurar API Key después
 
