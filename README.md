@@ -1,195 +1,149 @@
-#  AI Assistant - LLM con Interfaz Moderna
+# POC - AI Guard (Trend Micro)
 
-Aplicación de chat con IA usando modelos libres (Llama, Mistral) con interfaz web sofisticada.
+Prueba de concepto para validar prompts con Trend Micro AI Guard.
 
 ---
 
-## 🚀 INICIO RÁPIDO (2 comandos)
+## 📦 Archivos
+
+- **`app.py`** → Aplicación SIN AI Guard
+- **`app_guardtrail.py`** → Aplicación CON AI Guard
+
+---
+
+## 🚀 Instalación
 
 ```bash
-# 1. Instalar (solo primera vez - tarda 10 min)
+chmod +x setup.sh
 ./setup.sh
+```
 
-# 2. Ejecutar (todo en segundo plano)
+Durante el setup te pedirá tu **Trend Vision One API Key** (opcional).
+
+---
+
+## ▶️ Ejecutar
+
+### Opción 1: SIN AI Guard
+```bash
 ./run.sh
 ```
+Puerto: **5000**
 
-**Acceso:** `http://localhost:5000` (o `http://IP_PUBLICA:5000` en AWS)
-
----
-
-## 📋 COMANDOS PRINCIPALES
-
-| Comando | Qué hace |
-|---------|----------|
-| `./setup.sh` | Instala Ollama, modelo IA, dependencias (solo 1 vez) |
-| `./run.sh` | Inicia TODO en segundo plano |
-| `./stop.sh` | Detiene TODO |
-| `./status.sh` | Muestra estado de servicios y logs |
-
----
-
-## 📂 ESTRUCTURA DE ARCHIVOS
-
-```
-trend-ai-assistant/
-├── app.py                 # Backend Flask
-├── requirements.txt       # Dependencias Python
-├── README.md              # Esta guía
-│
-├── setup.sh               # ⭐ Instalación
-├── run.sh                 # ⭐ Ejecutar
-├── stop.sh                # ⭐ Detener
-├── status.sh              # ⭐ Ver estado
-│
-├── templates/
-│   └── index.html         # Interfaz web
-│
-├── static/
-│   ├── css/
-│   │   └── style.css      # Estilos 
-│   └── js/
-│       └── script.js      # JavaScript
-│
-└── logs/                  # Se crea automáticamente
-    ├── app.log
-    └── ollama.log
-```
-
----
-
-## ✨ CARACTERÍSTICAS
-
-- 🎨 **Interfaz moderna** con colores  (rojos/oscuros)
-- ⚡ **Streaming en tiempo real** (respuestas letra por letra)
-- 🤖 **Modelos libres** (Llama 3.2, Mistral, Phi-3)
-- 🔄 **Todo en segundo plano** (no necesitas múltiples terminales)
-- 📊 **Logs completos** guardados en archivos
-
----
-
-## 🖥️ REQUISITOS
-
-- **Linux:** Ubuntu 22.04+ (recomendado)
-- **Python:** 3.8 o superior
-- **RAM:** 8 GB mínimo
-- **Espacio:** ~5 GB
-
----
-
-
-## 🔧 VER LOGS
-
+### Opción 2: CON AI Guard
 ```bash
-# Ver estado general
-./status.sh
-
-# Logs en tiempo real
-tail -f logs/app.log      # Aplicación
-tail -f logs/ollama.log   # IA
-
-# Últimas 50 líneas
-tail -n 50 logs/app.log
+./run_guardtrail.sh
 ```
+Puerto: **5000**
 
----
-
-## 🐛 SOLUCIÓN DE PROBLEMAS
-
-### Problema: No inicia
+### Opción 3: Ambas en paralelo
 ```bash
-./status.sh              # Ver qué está mal
-cat logs/app.log         # Ver error específico
-./stop.sh && ./run.sh    # Reiniciar
-```
-
-### Problema: Puerto ocupado
-```bash
-kill -9 $(lsof -ti:5000)  # Liberar puerto
+# Terminal 1 - SIN AI Guard (puerto 5000)
 ./run.sh
-```
 
-### Problema: Ollama no responde
-```bash
-pkill ollama              # Matar proceso
-./run.sh                  # Reiniciar
+# Terminal 2 - CON AI Guard (puerto 5001)
+PORT=5001 ./run_guardtrail.sh
 ```
 
 ---
 
-## ⚙️ CONFIGURACIÓN
+## 🔄 Cambiar entre versiones
 
-### Cambiar modelo:
-Edita `app.py` línea 9:
-```python
-MODEL = "llama3.2"  # Cambiar a "mistral", "phi3", etc.
-```
-
-### Cambiar puerto:
-Edita `app.py` última línea:
-```python
-app.run(debug=False, host='0.0.0.0', port=5000)
-```
-
-### Instalar otros modelos:
+### Opción A: Reemplazar archivo
 ```bash
-ollama pull mistral
-ollama pull phi3
-ollama list  # Ver instalados
-```
-
----
-
-## 🎯 FLUJO DE TRABAJO
-
-### Primera instalación:
-```bash
-./setup.sh    # 10-15 minutos
-./run.sh      # 5 segundos
-```
-
-### Uso diario:
-```bash
-./run.sh      # Iniciar
-./stop.sh     # Detener
-```
-
----
-
-
-
-## 📞 CHEAT SHEET
-
-```bash
-# Instalación
-./setup.sh
-
-# Control
-./run.sh        # Iniciar
-./stop.sh       # Detener
-./status.sh     # Estado
-
-# Logs
-tail -f logs/app.log      # Ver logs app
-tail -f logs/ollama.log   # Ver logs IA
-
-# Reiniciar
+# Usar CON AI Guard
+cp app_guardtrail.py app.py
 ./stop.sh && ./run.sh
 
-# Verificar procesos
-ps aux | grep ollama
-ps aux | grep python
+# Usar SIN AI Guard
+git checkout app.py
+./stop.sh && ./run.sh
+```
+
+### Opción B: Scripts dedicados
+```bash
+# SIN AI Guard
+./run.sh
+
+# CON AI Guard
+./run_guardtrail.sh
 ```
 
 ---
 
-## 🔒 NOTAS DE SEGURIDAD
+## ⚙️ Configurar API Key después
 
-- La app acepta conexiones externas (`0.0.0.0:5000`)
-- Para producción: usar Nginx + HTTPS
-- Restringir Security Group a IPs específicas
-- Revisar logs periódicamente
+Si no configuraste durante el setup:
+
+```bash
+export V1_API_KEY="tu-api-key-aqui"
+./run_guardtrail.sh
+```
+
+O guardar permanentemente:
+
+```bash
+echo 'export V1_API_KEY="tu-api-key"' >> ~/.bashrc
+source ~/.bashrc
+```
 
 ---
+
+## 🛑 Detener
+
+```bash
+./stop.sh
+```
+
+---
+
+## 📊 Logs
+
+```bash
+# Ver logs en tiempo real
+tail -f logs/app.log
+
+# Ver solo AI Guard
+tail -f logs/app.log | grep "TREND MICRO"
+```
+
+---
+
+## 🧪 Verificar AI Guard
+
+```bash
+curl http://localhost:5000/api/guardtrail/status
+```
+
+Respuesta:
+```json
+{
+  "enabled": true,
+  "configured": true,
+  "mode": "always_on"
+}
+```
+
+---
+
+## 📝 Diferencias
+
+| Característica | app.py | app_guardtrail.py |
+|---------------|--------|-------------------|
+| AI Guard | ❌ No | ✅ Sí |
+| Valida INPUT | ❌ | ✅ |
+| Valida OUTPUT | ❌ | ✅ |
+| API Key requerida | ❌ | ✅ |
+| Todo lo demás | ✅ Igual | ✅ Igual |
+
+---
+
+## 🔧 Requisitos
+
+- Ubuntu 24+
+- Python 3.10+
+- 8GB RAM mínimo
+- Trend Vision One API Key (solo para AI Guard)
+
 
 **Desarrollado para testing con GuardTrail de Trend Micro** 🔴⚫
