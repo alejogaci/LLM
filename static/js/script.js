@@ -75,6 +75,20 @@ async function sendMessage() {
                     try {
                         const data = JSON.parse(line.slice(6));
                         
+                        // Handle GuardTrail blocked message
+                        if (data.blocked && data.guardtrail) {
+                            contentDiv.innerHTML = `
+                                <div style="color: var(--trend-red); 
+                                            background: rgba(220, 38, 38, 0.1); 
+                                            padding: 15px; 
+                                            border-radius: 8px; 
+                                            border-left: 4px solid var(--trend-red);">
+                                    ${formatMessage(data.message)}
+                                </div>
+                            `;
+                            break;
+                        }
+                        
                         if (data.error) {
                             contentDiv.innerHTML = `<span style="color: var(--trend-red-light);">Error: ${data.error}</span>`;
                             break;
