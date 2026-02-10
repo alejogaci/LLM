@@ -1,17 +1,17 @@
 # POC - AI Guard (Trend Micro)
 
-Prueba de concepto para validar prompts con Trend Micro AI Guard.
+Proof of concept to validate prompts using Trend Micro AI Guard.
 
 ---
 
-## 📦 Archivos
+## 📦 Files
 
-- **`app.py`** → Aplicación SIN AI Guard
-- **`app_guardtrail.py`** → Aplicación CON AI Guard
+- **`app.py`** → Application WITHOUT AI Guard  
+- **`app_guardtrail.py`** → Application WITH AI Guard  
 
 ---
 
-## 🚀 Instalación
+## 🚀 Installation
 
 ```bash
 chmod +x setup.sh
@@ -20,50 +20,50 @@ chmod +x setup.sh
 
 ---
 
-## ▶️ Ejecutar
+## ▶️ Run
 
-### Opción 1: SIN AI Guard
+### Option 1: WITHOUT AI Guard
 ```bash
 ./run.sh
 ```
-Puerto: **5000**
+Port: **5000**
 
-### Opción 2: CON AI Guard
+### Option 2: WITH AI Guard
 ```bash
 ./run_guardtrail.sh
 ```
-Puerto: **5000**
+Port: **5000**
 
-### Opción 3: Ambas en paralelo
+### Option 3: Both in parallel
 ```bash
-# Terminal 1 - SIN AI Guard (puerto 5000)
+# Terminal 1 - WITHOUT AI Guard (port 5000)
 ./run.sh
 
-# Terminal 2 - CON AI Guard (puerto 5001)
+# Terminal 2 - WITH AI Guard (port 5001)
 PORT=5001 ./run_guardtrail.sh
 ```
 
 ---
 
 
-## ⚙️ Configurar API Key 
+## ⚙️ Configure API Key
 
 
 ```bash
-export V1_API_KEY="tu-api-key-aqui"
+export V1_API_KEY="your-api-key-here"
 ./run_guardtrail.sh
 ```
 
-O guardar permanentemente:
+Or save it permanently:
 
 ```bash
-echo 'export V1_API_KEY="tu-api-key"' >> ~/.bashrc
+echo 'export V1_API_KEY="your-api-key"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
 ---
 
-## 🛑 Detener
+## 🛑 Stop
 
 ```bash
 ./stop.sh
@@ -74,22 +74,22 @@ source ~/.bashrc
 ## 📊 Logs
 
 ```bash
-# Ver logs en tiempo real
+# View logs in real time
 tail -f logs/app.log
 
-# Ver solo AI Guard
+# View only AI Guard logs
 tail -f logs/app.log | grep "TREND MICRO"
 ```
 
 ---
 
-## 🧪 Verificar AI Guard
+## 🧪 Verify AI Guard
 
 ```bash
 curl http://localhost:5000/api/guardtrail/status
 ```
 
-Respuesta:
+Response:
 ```json
 {
   "enabled": true,
@@ -100,24 +100,24 @@ Respuesta:
 
 ---
 
-## 📝 Diferencias
+## 📝 Differences
 
 | Característica | app.py | app_guardtrail.py |
 |---------------|--------|-------------------|
 | AI Guard | ❌ No | ✅ Sí |
-| Valida INPUT | ❌ | ✅ |
-| Valida OUTPUT | ❌ | ✅ |
-| API Key requerida | ❌ | ✅ |
-| Todo lo demás | ✅ Igual | ✅ Igual |
+| Input validation | ❌ | ✅ |
+| Output validation | ❌ | ✅ |
+| API Key required | ❌ | ✅ |
+| Everything else | ✅ Igual | ✅ Igual |
 
 ---
 
-## 🔧 Requisitos
+## 🔧 Requirements
 
 - Ubuntu 24+
 - Python 3.10+
-- 8GB RAM mínimo
-- Trend Vision One API Key (solo para AI Guard)
+- Minimum 8GB RAM
+- Trend Vision One API Key (AI Guard only)
 
 
-**Desarrollado para testing con GuardTrail de Trend Micro** 🔴⚫
+**Developed for testing with Trend Micro GuardTrail** 🔴⚫
