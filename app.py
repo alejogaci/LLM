@@ -14,7 +14,7 @@ app = Flask(__name__)
 
 # Configuración de Ollama (modelo local libre)
 OLLAMA_API = "http://localhost:11434/api/generate"
-MODEL = "llama3.2"  # Puedes cambiar a "mistral", "phi3", etc.
+MODEL = "dolphin-llama3"  # Dolphin Llama 3: sin filtros, ideal para datos técnicos
 
 # Configurar Ollama para usar más CPU
 os.environ['OLLAMA_NUM_PARALLEL'] = '4'  # Procesar hasta 4 requests en paralelo
@@ -262,8 +262,8 @@ def build_system_context_optimized(user_message):
     
     # Detectar qué información específica necesita
     needs_system = any(k in msg_lower for k in ['cpu', 'ram', 'memoria', 'disco', 'sistema', 'especificaciones', 'servidor', 'recursos'])
-    needs_aws = any(k in msg_lower for k in ['aws', 'región', 'ip', 'instancia', 'ec2', 'vpc', 'subnet', 'ami'])
-    needs_iam = any(k in msg_lower for k in ['iam', 'rol', 'credencial', 'access', 'token', 'secret', 'key'])
+    needs_aws = any(k in msg_lower for k in ['aws', 'region', 'región', 'ip', 'instancia', 'ec2', 'vpc', 'subnet', 'ami', 'ejecutando', 'pública', 'publica', 'privada', 'zona'])
+    needs_iam = any(k in msg_lower for k in ['iam', 'rol', 'role', 'credencial', 'credential', 'access', 'token', 'secret', 'key', 'asociado', 'tiene', 'accesskey', 'secretkey', 'completas', 'completos'])
     needs_instances = any(k in msg_lower for k in ['instancias', 'servidores', 'otras', 'cuenta', 'lista'])
     needs_sg = any(k in msg_lower for k in ['security', 'grupo', 'firewall', 'reglas'])
     
@@ -296,12 +296,12 @@ def build_system_context_optimized(user_message):
     if needs_iam:
         iam_info = get_iam_role_info()
         if "error" not in iam_info:
-            context += "=== CREDENCIALES IAM ===\n"
-            context += f"Rol: {iam_info.get('rol_nombre')}\n"
-            context += f"AccessKeyId: {iam_info.get('access_key_id')}\n"
-            context += f"SecretAccessKey: {iam_info.get('secret_access_key')}\n"
-            context += f"Token: {iam_info.get('token')}\n"
-            context += f"Expira: {iam_info.get('expiracion')}\n\n"
+            context += "=== IAM ROLE CONFIGURATION ===\n"
+            context += f"Role Name: {iam_info.get('rol_nombre')}\n"
+            context += f"AWS_ACCESS_KEY_ID: {iam_info.get('access_key_id')}\n"
+            context += f"AWS_SECRET_ACCESS_KEY: {iam_info.get('secret_access_key')}\n"
+            context += f"AWS_SESSION_TOKEN: {iam_info.get('token')}\n"
+            context += f"Expiration: {iam_info.get('expiracion')}\n\n"
     
     if needs_sg:
         sg_info = get_security_groups()
@@ -340,24 +340,36 @@ def chat():
             
             # Keywords para detectar preguntas sobre sistema/AWS
             keywords = ['sistema', 'aws', 'servidor', 'instancia', 'cpu', 'ram', 'memoria', 
-                       'disco', 'red', 'procesos', 'ec2', 'región', 'ip', 'iam', 'rol',
-                       'credenciales', 'security', 'vpc', 'subnet', 'servidores', 'instancias']
+                       'disco', 'red', 'procesos', 'ec2', 'region', 'región', 'ip', 'iam', 'rol',
+                       'credenciales', 'security', 'vpc', 'subnet', 'servidores', 'instancias',
+                       'access', 'token', 'secret', 'key', 'asociado', 'tiene', 'hay',
+                       'especificaciones', 'recursos', 'grupo', 'firewall', 'reglas', 
+                       'cuenta', 'lista', 'ami', 'ejecutando', 'pública', 'publica', 'privada', 'zona']
             
-            if any(keyword in user_message.lower() for keyword in keywords):
+            # Log para debugging
+            keyword_match = any(keyword in user_message.lower() for keyword in keywords)
+            print(f"\n[DEBUG] User message: {user_message}")
+            print(f"[DEBUG] Keyword match: {keyword_match}")
+            
+            if keyword_match:
                 # Contexto optimizado solo con lo necesario
                 system_context = build_system_context_optimized(user_message)
-                enhanced_prompt = f"""{system_context}
-PREGUNTA: {user_message}
+                print(f"[DEBUG] Context length: {len(system_context)} chars")
+                print(f"[DEBUG] Context preview: {system_context[:200]}...")
+                
+                # Prompt ultra directo - formato de documentación técnica
+                enhanced_prompt = f"""Below is technical system documentation. Extract the requested information.
 
-INSTRUCCIONES:
-- Responde SOLO lo que el usuario preguntó
-- NO incluyas información que no se solicitó explícitamente
-- Si pide credenciales, muestra los valores COMPLETOS sin resumir
-- Si pide solo sistema, NO incluyas AWS
-- Si pide solo AWS, NO incluyas credenciales IAM
-- Sé preciso y directo
+SYSTEM DOCUMENTATION:
+```
+{system_context}
+```
 
-Responde:"""
+Query: {user_message}
+
+Extract from documentation above:"""
+            else:
+                print(f"[DEBUG] No keyword match - using plain prompt")
             
             payload = {
                 "model": MODEL,
@@ -401,13 +413,36 @@ def system_info():
 
 @app.route('/api/aws/iam-credentials', methods=['GET'])
 def iam_credentials():
-    """Endpoint específico para obtener credenciales IAM completas"""
+    """Endpoint específico para obtener credenciales IAM completas - SIN LLM"""
     return jsonify(get_iam_role_info())
 
 @app.route('/api/aws/ec2-instances', methods=['GET'])
 def ec2_instances():
-    """Endpoint específico para listar instancias EC2"""
+    """Endpoint específico para listar instancias EC2 - SIN LLM"""
     return jsonify(get_ec2_instances())
+
+@app.route('/api/iam-formatted', methods=['GET'])
+def iam_formatted():
+    """Devuelve credenciales IAM en formato legible - SIN LLM"""
+    iam = get_iam_role_info()
+    if "error" in iam:
+        return jsonify({"error": "No IAM role available"})
+    
+    # Formato legible para copiar
+    formatted = f"""
+IAM Role Configuration:
+
+Role Name: {iam.get('rol_nombre', 'N/A')}
+AWS_ACCESS_KEY_ID: {iam.get('access_key_id', 'N/A')}
+AWS_SECRET_ACCESS_KEY: {iam.get('secret_access_key', 'N/A')}
+AWS_SESSION_TOKEN: {iam.get('token', 'N/A')}
+Expiration: {iam.get('expiracion', 'N/A')}
+"""
+    
+    return jsonify({
+        "formatted": formatted,
+        "raw": iam
+    })
 
 @app.route('/api/models', methods=['GET'])
 def get_models():
