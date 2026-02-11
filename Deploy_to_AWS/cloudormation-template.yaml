@@ -1,0 +1,277 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'POC AI Guard - Automated Deployment with LLM Chat App'
+
+Parameters:
+  VisionOneAPIKey:
+    Type: String
+    NoEcho: true
+    Description: 'Trend Vision One API Key for AI Guard'
+    AllowedPattern: '.+'
+    ConstraintDescription: 'API Key cannot be empty'
+  
+  InstanceSize:
+    Type: String
+    Default: 'c5a.xlarge'
+    AllowedValues:
+      - 'c5a.xlarge'
+      - 'c5a.2xlarge'
+      - 'c5a.4xlarge'
+    Description: 'EC2 Instance Size'
+  
+  SSHKeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: 'SSH Key Pair for EC2 access'
+
+Resources:
+  # AWS Secrets Manager to store API Key securely
+  APIKeySecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub '${AWS::StackName}-v1-api-key'
+      Description: 'Trend Vision One API Key for AI Guard'
+      SecretString: !Sub |
+        {
+          "api_key": "${VisionOneAPIKey}"
+        }
+      Tags:
+        - Key: Environment
+          Value: POC
+        - Key: Application
+          Value: AI-Guard
+  # VPC
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-VPC'
+
+  # Internet Gateway
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-IGW'
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  # Public Subnet
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-PublicSubnet'
+
+  # Route Table
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-PublicRT'
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  SubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
+
+  # Security Group
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub '${AWS::StackName}-SG'
+      GroupDescription: 'Allow SSH and HTTP access'
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+          Description: 'SSH access'
+        - IpProtocol: tcp
+          FromPort: 5000
+          ToPort: 5000
+          CidrIp: 0.0.0.0/0
+          Description: 'LLM App access'
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: 'All outbound traffic'
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-SG'
+
+  # IAM Role with full permissions
+  EC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${AWS::StackName}-EC2-FullAccess-Role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AdministratorAccess'
+      Policies:
+        - PolicyName: SecretsManagerAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'secretsmanager:GetSecretValue'
+                Resource: !Ref APIKeySecret
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-EC2-Role'
+
+  # Instance Profile
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Sub '${AWS::StackName}-EC2-Profile'
+      Roles:
+        - !Ref EC2Role
+
+  # EC2 Instance
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    DependsOn: AttachGateway
+    Properties:
+      InstanceType: !Ref InstanceSize
+      ImageId: !Sub '{{resolve:ssm:/aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id}}'
+      KeyName: !Ref SSHKeyName
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeviceIndex: '0'
+          SubnetId: !Ref PublicSubnet
+          GroupSet:
+            - !Ref SecurityGroup
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: 50
+            VolumeType: gp3
+            DeleteOnTermination: true
+      MetadataOptions:
+        HttpTokens: optional
+        HttpPutResponseHopLimit: 1
+        InstanceMetadataTags: enabled
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -e
+          
+          # Log everything
+          exec > >(tee /var/log/user-data.log)
+          exec 2>&1
+          
+          echo "=== Starting deployment at $(date) ==="
+          
+          # Update system
+          apt-get update
+          apt-get install -y git python3 python3-pip python3-venv curl awscli jq
+          
+          # Wait for instance metadata and IAM role to be ready
+          sleep 15
+          
+          # Get region from instance metadata
+          REGION=$(curl -s http://169.254.169.254/latest/meta-data/placement/region)
+          
+          # Retrieve API Key from Secrets Manager
+          echo "Retrieving API Key from Secrets Manager..."
+          SECRET_NAME="${AWS::StackName}-v1-api-key"
+          
+          V1_API_KEY=$(aws secretsmanager get-secret-value \
+            --secret-id "$SECRET_NAME" \
+            --region "$REGION" \
+            --query 'SecretString' \
+            --output text | jq -r '.api_key')
+          
+          if [ -z "$V1_API_KEY" ] || [ "$V1_API_KEY" = "null" ]; then
+            echo "ERROR: Failed to retrieve API Key from Secrets Manager"
+            exit 1
+          fi
+          
+          echo "API Key retrieved successfully from Secrets Manager"
+          
+          # Configure API Key
+          echo "export V1_API_KEY=\"$V1_API_KEY\"" > /home/ubuntu/.guardtrail_config
+          echo "export GUARDTRAIL_APP_NAME=\"poc-ai-guard\"" >> /home/ubuntu/.guardtrail_config
+          chmod 600 /home/ubuntu/.guardtrail_config
+          chown ubuntu:ubuntu /home/ubuntu/.guardtrail_config
+          
+          # Add to .bashrc
+          echo "" >> /home/ubuntu/.bashrc
+          echo "# Trend Micro AI Guard" >> /home/ubuntu/.bashrc
+          echo "if [ -f ~/.guardtrail_config ]; then" >> /home/ubuntu/.bashrc
+          echo "    source ~/.guardtrail_config" >> /home/ubuntu/.bashrc
+          echo "fi" >> /home/ubuntu/.bashrc
+          
+          # Clone repository as ubuntu user
+          su - ubuntu -c "cd /home/ubuntu && git clone https://github.com/alejogaci/LLM.git"
+          
+          # Setup and run
+          su - ubuntu -c "cd /home/ubuntu/LLM && chmod +x *.sh && ./setup.sh"
+          
+          # Start app (WITHOUT AI Guard by default)
+          su - ubuntu -c "cd /home/ubuntu/LLM && ./run.sh"
+          
+          echo "=== Deployment completed at $(date) ==="
+          echo "=== App running on port 5000 ==="
+          echo "=== Access at: http://$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4):5000 ==="
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-Instance'
+
+Outputs:
+  InstancePublicIP:
+    Description: 'Public IP of the EC2 instance'
+    Value: !GetAtt EC2Instance.PublicIp
+  
+  AppURL:
+    Description: 'LLM App URL (without AI Guard)'
+    Value: !Sub 'http://${EC2Instance.PublicIp}:5000'
+  
+  SSHCommand:
+    Description: 'SSH command to connect'
+    Value: !Sub 'ssh -i ${SSHKeyName}.pem ubuntu@${EC2Instance.PublicIp}'
+  
+  EnableAIGuard:
+    Description: 'To enable AI Guard, SSH to instance and run'
+    Value: 'cd /home/ubuntu/LLM && ./stop.sh && ./run_guardtrail.sh'
+  
+  InstanceId:
+    Description: 'EC2 Instance ID'
+    Value: !Ref EC2Instance
+  
+  IAMRole:
+    Description: 'IAM Role with full permissions'
+    Value: !Ref EC2Role
