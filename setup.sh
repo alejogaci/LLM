@@ -5,170 +5,171 @@ echo "  Setup - POC AI Guard"
 echo "=========================================="
 echo ""
 
-# Colores
+# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-# Detectar CPUs
+# Detect CPUs
 CPU_CORES=$(nproc)
-echo -e "${BLUE}CPUs detectadas: $CPU_CORES${NC}"
+echo -e "${BLUE}CPUs detected: $CPU_CORES${NC}"
 echo ""
 
 # ====================================
-# VERIFICAR PYTHON
+# VERIFY PYTHON
 # ====================================
-echo -e "${YELLOW}[1/4] Verificando Python...${NC}"
+echo -e "${YELLOW}[1/4] Verifying Python...${NC}"
 if command -v python3 &> /dev/null; then
     PYTHON_VERSION=$(python3 --version)
-    echo -e "${GREEN}✓ Python encontrado: $PYTHON_VERSION${NC}"
+    echo -e "${GREEN}✓ Python found: $PYTHON_VERSION${NC}"
 else
-    echo -e "${RED}✗ Python 3 no está instalado${NC}"
-    echo "Instala Python 3.8+ con:"
+    echo -e "${RED}✗ Python 3 is not installed${NC}"
+    echo "Install Python 3.8+ with:"
     echo "  sudo apt update"
     echo "  sudo apt install python3 python3-pip python3-venv -y"
     exit 1
 fi
 
-# Verificar python3-venv
+# Verify python3-venv
 if ! dpkg -l | grep -q python3-venv 2>/dev/null; then
-    echo "Instalando python3-venv..."
+    echo "Installing python3-venv..."
     sudo apt update && sudo apt install -y python3-venv
 fi
 
 # ====================================
-# INSTALAR OLLAMA
+# INSTALL OLLAMA
 # ====================================
 echo ""
-echo -e "${YELLOW}[2/4] Verificando Ollama...${NC}"
+echo -e "${YELLOW}[2/4] Verifying Ollama...${NC}"
 if command -v ollama &> /dev/null; then
-    echo -e "${GREEN}✓ Ollama ya está instalado${NC}"
+    echo -e "${GREEN}✓ Ollama already installed${NC}"
 else
-    echo -e "${YELLOW}Instalando Ollama...${NC}"
+    echo -e "${YELLOW}Installing Ollama...${NC}"
     curl -fsSL https://ollama.com/install.sh | sh
-    echo -e "${GREEN}✓ Ollama instalado${NC}"
+    echo -e "${GREEN}✓ Ollama installed${NC}"
 fi
 
 # ====================================
-# CREAR ENTORNO VIRTUAL PYTHON
+# CREATE PYTHON VIRTUAL ENVIRONMENT
 # ====================================
 echo ""
-echo -e "${YELLOW}[3/4] Configurando entorno Python...${NC}"
+echo -e "${YELLOW}[3/4] Configuring Python environment...${NC}"
 
-# Eliminar venv corrupto si existe
+# Remove corrupted venv if exists
 if [ -d "venv" ] && [ ! -f "venv/bin/activate" ]; then
-    echo -e "${YELLOW}Eliminando venv corrupto...${NC}"
+    echo -e "${YELLOW}Removing corrupted venv...${NC}"
     rm -rf venv
 fi
 
-# Crear venv
+# Create venv
 if [ ! -d "venv" ]; then
     python3 -m venv venv
     if [ $? -ne 0 ]; then
-        echo -e "${RED}✗ Error creando entorno virtual${NC}"
+        echo -e "${RED}✗ Error creating virtual environment${NC}"
         exit 1
     fi
 fi
 
-# Verificar creación
+# Verify creation
 if [ ! -f "venv/bin/activate" ]; then
-    echo -e "${RED}✗ Error: venv/bin/activate no existe${NC}"
+    echo -e "${RED}✗ Error: venv/bin/activate does not exist${NC}"
     exit 1
 fi
 
-echo -e "${GREEN}✓ Entorno virtual creado${NC}"
+echo -e "${GREEN}✓ Virtual environment created${NC}"
 
-# Activar venv e instalar dependencias
+# Activate venv and install dependencies
 source venv/bin/activate
 pip install --upgrade pip --quiet
 pip install -r requirements.txt --quiet
 
 if [ $? -eq 0 ]; then
-    echo -e "${GREEN}✓ Dependencias instaladas${NC}"
+    echo -e "${GREEN}✓ Dependencies installed${NC}"
 else
-    echo -e "${RED}✗ Error instalando dependencias${NC}"
+    echo -e "${RED}✗ Error installing dependencies${NC}"
     exit 1
 fi
 
 # ====================================
-# DESCARGAR MODELO DOLPHIN LLAMA 3
+# DOWNLOAD DOLPHIN LLAMA 3 MODEL
 # ====================================
 echo ""
-echo -e "${YELLOW}[4/4] Descargando modelo LLM...${NC}"
+echo -e "${YELLOW}[4/4] Downloading LLM model...${NC}"
 
-# Verificar si dolphin-llama3 ya está instalado
+# Check if dolphin-llama3 is already installed
 if ollama list 2>/dev/null | grep -q "dolphin-llama3"; then
-    echo -e "${GREEN}✓ Modelo dolphin-llama3 ya descargado${NC}"
+    echo -e "${GREEN}✓ Model dolphin-llama3 already downloaded${NC}"
 else
-    echo -e "${YELLOW}Descargando Dolphin Llama 3 (sin filtros)...${NC}"
-    echo -e "${BLUE}Esto puede tardar 5-10 minutos...${NC}"
+    echo -e "${YELLOW}Downloading Dolphin Llama 3 (no filters)...${NC}"
+    echo -e "${BLUE}This may take 5-10 minutes...${NC}"
     ollama pull dolphin-llama3
     
     if [ $? -eq 0 ]; then
-        echo -e "${GREEN}✓ Modelo dolphin-llama3 descargado${NC}"
+        echo -e "${GREEN}✓ Model dolphin-llama3 downloaded${NC}"
     else
-        echo -e "${RED}✗ Error descargando modelo${NC}"
-        echo -e "${YELLOW}Puedes descargarlo después con: ollama pull dolphin-llama3${NC}"
+        echo -e "${RED}✗ Error downloading model${NC}"
+        echo -e "${YELLOW}You can download it later with: ollama pull dolphin-llama3${NC}"
     fi
 fi
 
 # ====================================
-# VERIFICAR ESTRUCTURA
+# VERIFY STRUCTURE
 # ====================================
 echo ""
-echo -e "${YELLOW}Verificando archivos...${NC}"
+echo -e "${YELLOW}Verifying files...${NC}"
 
 MISSING=0
 
 if [ ! -f "app.py" ]; then
-    echo -e "${RED}✗ Falta app.py${NC}"
+    echo -e "${RED}✗ Missing app.py${NC}"
     MISSING=$((MISSING + 1))
 fi
 
 if [ ! -f "app_guardtrail.py" ]; then
-    echo -e "${RED}✗ Falta app_guardtrail.py${NC}"
+    echo -e "${RED}✗ Missing app_guardtrail.py${NC}"
     MISSING=$((MISSING + 1))
 fi
 
 if [ ! -d "templates" ]; then
-    echo -e "${RED}✗ Falta carpeta templates/${NC}"
+    echo -e "${RED}✗ Missing templates/ folder${NC}"
     MISSING=$((MISSING + 1))
 fi
 
 if [ ! -d "static" ]; then
-    echo -e "${RED}✗ Falta carpeta static/${NC}"
+    echo -e "${RED}✗ Missing static/ folder${NC}"
     MISSING=$((MISSING + 1))
 fi
 
 if [ $MISSING -gt 0 ]; then
-    echo -e "${YELLOW}⚠ Faltan $MISSING archivos/carpetas${NC}"
+    echo -e "${YELLOW}⚠ Missing $MISSING files/folders${NC}"
 else
-    echo -e "${GREEN}✓ Estructura completa${NC}"
+    echo -e "${GREEN}✓ Complete structure${NC}"
 fi
 
 # ====================================
-# RESUMEN
+# SUMMARY
 # ====================================
 echo ""
 echo -e "${GREEN}=========================================${NC}"
-echo -e "${GREEN}  Setup completado${NC}"
+echo -e "${GREEN}  Setup completed${NC}"
 echo -e "${GREEN}=========================================${NC}"
 echo ""
-echo -e "${BLUE}Configuración:${NC}"
-echo "  Modelo: Dolphin Llama 3 (sin filtros)"
+echo -e "${BLUE}Configuration:${NC}"
+echo "  Model: Dolphin Llama 3 (no filters)"
 echo "  CPUs: $CPU_CORES cores"
 echo ""
-echo -e "${BLUE}Ejecutar:${NC}"
-echo "  ./run.sh               - App SIN AI Guard"
-echo "  ./run_guardtrail.sh    - App CON AI Guard"
+echo -e "${BLUE}Run:${NC}"
+echo "  ./run.sh               - App WITHOUT AI Guard"
+echo "  ./run_guardtrail.sh    - App WITH AI Guard"
 echo ""
-echo -e "${BLUE}Configurar AI Guard (opcional):${NC}"
-echo "  export V1_API_KEY=\"tu-api-key\""
+echo -e "${BLUE}Configure AI Guard (optional):${NC}"
+echo "  export V1_API_KEY=\"your-api-key\""
 echo "  ./run_guardtrail.sh"
 echo ""
-echo -e "${BLUE}Herramientas:${NC}"
-echo "  ./stop.sh              - Detener app"
-echo "  ./status.sh            - Ver estado"
+echo -e "${BLUE}Tools:${NC}"
+echo "  ./stop.sh              - Stop app"
+echo "  ./status.sh            - View status"
 echo ""
+
