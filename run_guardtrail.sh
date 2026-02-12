@@ -1,32 +1,27 @@
 #!/bin/bash
 
 echo "=========================================="
-echo "  Starting - WITH AI Guard"
+echo "  Starting - WITH AI Guard (Simple)"
 echo "=========================================="
 echo ""
 
-# Verify API Key
+# Check API Key directly from environment
 if [ -z "$V1_API_KEY" ]; then
-    echo "⚠️  ERROR: V1_API_KEY not configured"
+    echo "❌ ERROR: V1_API_KEY not set in environment"
     echo ""
-    echo "Configure your API Key:"
-    echo "  export V1_API_KEY=\"your-api-key\""
-    echo ""
-    echo "Or run setup.sh again"
+    echo "In the SAME shell, run:"
+    echo "  export V1_API_KEY=\"your-key\""
+    echo "  ./run_guardtrail_simple.sh"
     exit 1
 fi
 
-# Load configuration if exists
-if [ -f ~/.guardtrail_config ]; then
-    source ~/.guardtrail_config
-fi
+echo "✓ API Key found: ${V1_API_KEY:0:20}..."
+echo ""
 
 # Detect CPUs
 CPU_CORES=$(nproc)
 NUM_THREADS=$((CPU_CORES / 2))
-if [ $NUM_THREADS -gt 8 ]; then
-    NUM_THREADS=8
-fi
+[ $NUM_THREADS -gt 8 ] && NUM_THREADS=8
 
 # Configure variables
 export OLLAMA_NUM_PARALLEL=4
@@ -38,6 +33,11 @@ export OLLAMA_NUM_THREAD=$NUM_THREADS
 mkdir -p logs
 
 # Activate venv
+if [ ! -d "venv" ]; then
+    echo "❌ venv not found. Run ./setup.sh first"
+    exit 1
+fi
+
 source venv/bin/activate
 
 echo "Configuration:"
@@ -55,6 +55,7 @@ if ! pgrep -x "ollama" > /dev/null 2>&1; then
 fi
 
 # Run app_guardtrail.py
+echo "Starting app with AI Guard..."
 nohup python3 app_guardtrail.py > logs/app.log 2>&1 &
 PID=$!
 echo $PID > logs/app.pid
@@ -68,6 +69,6 @@ if ps -p $PID > /dev/null; then
     echo "Logs: tail -f logs/app.log"
     echo "Stop: ./stop.sh"
 else
-    echo "✗ Error starting application"
-    cat logs/app.log
+    echo "❌ Error starting application"
+    tail -20 logs/app.log
 fi
