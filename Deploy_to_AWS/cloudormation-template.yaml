@@ -99,7 +99,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupName: !Sub '${AWS::StackName}-SG'
-      GroupDescription: 'Allow SSH and HTTP access'
+      GroupDescription: 'Allow SSH and HTTP access to LLM app'
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
@@ -134,6 +134,7 @@ Resources:
             Action: 'sts:AssumeRole'
       ManagedPolicyArns:
         - 'arn:aws:iam::aws:policy/AdministratorAccess'
+        - 'arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore'
       Policies:
         - PolicyName: SecretsManagerAccess
           PolicyDocument:
@@ -259,6 +260,34 @@ Resources:
           echo "Running setup.sh..."
           su - ubuntu -c "cd /home/ubuntu/LLM && chmod +x *.sh && ./setup.sh"
           
+          # Ensure Ollama is running
+          echo "Ensuring Ollama is running..."
+          if ! pgrep -x "ollama" > /dev/null; then
+            su - ubuntu -c "nohup ollama serve > /home/ubuntu/LLM/logs/ollama.log 2>&1 &"
+            sleep 5
+          fi
+          
+          # Force download dolphin-llama3 model with retries
+          echo "Downloading dolphin-llama3 model..."
+          MAX_RETRIES=3
+          RETRY=0
+          while [ $RETRY -lt $MAX_RETRIES ]; do
+            su - ubuntu -c "ollama pull dolphin-llama3"
+            if su - ubuntu -c "ollama list" | grep -q "dolphin-llama3"; then
+              echo "✓ Model downloaded successfully"
+              break
+            fi
+            RETRY=$((RETRY + 1))
+            echo "Retry $RETRY of $MAX_RETRIES..."
+            sleep 5
+          done
+          
+          # Verify model is downloaded
+          if ! su - ubuntu -c "ollama list" | grep -q "dolphin-llama3"; then
+            echo "ERROR: Failed to download dolphin-llama3 model after $MAX_RETRIES attempts"
+            echo "You can download it manually with: ollama pull dolphin-llama3"
+          fi
+          
           # Start app (WITHOUT AI Guard by default)
           echo "Starting application..."
           su - ubuntu -c "cd /home/ubuntu/LLM && ./run.sh"
@@ -289,6 +318,10 @@ Outputs:
   AppURL:
     Description: 'LLM App URL (without AI Guard)'
     Value: !Sub 'http://${EC2Instance.PublicIp}:5000'
+  
+  SSHCommand:
+    Description: 'Connect using AWS Systems Manager Session Manager (no key pair needed)'
+    Value: !Sub 'aws ssm start-session --target ${EC2Instance} --region ${AWS::Region}'
   
   EnableAIGuard:
     Description: 'To enable AI Guard, SSH to instance and run'
