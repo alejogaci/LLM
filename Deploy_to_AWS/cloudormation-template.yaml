@@ -290,10 +290,6 @@ Outputs:
     Description: 'LLM App URL (without AI Guard)'
     Value: !Sub 'http://${EC2Instance.PublicIp}:5000'
   
-  SSHCommand:
-    Description: 'SSH command to connect'
-    Value: !Sub 'ssh -i ${SSHKeyName}.pem ubuntu@${EC2Instance.PublicIp}'
-  
   EnableAIGuard:
     Description: 'To enable AI Guard, SSH to instance and run'
     Value: 'cd /home/ubuntu/LLM && ./stop.sh && ./run_guardtrail.sh'
