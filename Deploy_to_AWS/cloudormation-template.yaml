@@ -17,10 +17,6 @@ Parameters:
       - 'c5a.2xlarge'
       - 'c5a.4xlarge'
     Description: 'EC2 Instance Size'
-  
-  SSHKeyName:
-    Type: AWS::EC2::KeyPair::KeyName
-    Description: 'SSH Key Pair for EC2 access'
 
 Resources:
   # AWS Secrets Manager to store API Key securely
@@ -166,7 +162,6 @@ Resources:
     Properties:
       InstanceType: !Ref InstanceSize
       ImageId: !Sub '{{resolve:ssm:/aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id}}'
-      KeyName: !Ref SSHKeyName
       IamInstanceProfile: !Ref EC2InstanceProfile
       NetworkInterfaces:
         - AssociatePublicIpAddress: true
