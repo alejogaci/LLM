@@ -98,19 +98,56 @@ fi
 echo ""
 echo -e "${YELLOW}[4/4] Downloading LLM model...${NC}"
 
+# Ensure Ollama is running
+if ! pgrep -x "ollama" > /dev/null; then
+    echo -e "${YELLOW}Starting Ollama service...${NC}"
+    nohup ollama serve > /tmp/ollama_setup.log 2>&1 &
+    sleep 5
+    
+    # Verify it started
+    if pgrep -x "ollama" > /dev/null; then
+        echo -e "${GREEN}✓ Ollama service started${NC}"
+    else
+        echo -e "${RED}✗ Failed to start Ollama${NC}"
+        echo "Try manually: ollama serve"
+        echo "Then run: ollama pull dolphin-llama3"
+        exit 1
+    fi
+fi
+
 # Check if dolphin-llama3 is already installed
 if ollama list 2>/dev/null | grep -q "dolphin-llama3"; then
     echo -e "${GREEN}✓ Model dolphin-llama3 already downloaded${NC}"
 else
     echo -e "${YELLOW}Downloading Dolphin Llama 3 (no filters)...${NC}"
     echo -e "${BLUE}This may take 5-10 minutes...${NC}"
-    ollama pull dolphin-llama3
     
-    if [ $? -eq 0 ]; then
-        echo -e "${GREEN}✓ Model dolphin-llama3 downloaded${NC}"
-    else
-        echo -e "${RED}✗ Error downloading model${NC}"
-        echo -e "${YELLOW}You can download it later with: ollama pull dolphin-llama3${NC}"
+    # Try to download with retry
+    MAX_RETRIES=3
+    RETRY=0
+    SUCCESS=0
+    
+    while [ $RETRY -lt $MAX_RETRIES ]; do
+        ollama pull dolphin-llama3
+        
+        if [ $? -eq 0 ]; then
+            echo -e "${GREEN}✓ Model dolphin-llama3 downloaded${NC}"
+            SUCCESS=1
+            break
+        fi
+        
+        RETRY=$((RETRY + 1))
+        if [ $RETRY -lt $MAX_RETRIES ]; then
+            echo -e "${YELLOW}Retry $RETRY of $MAX_RETRIES...${NC}"
+            sleep 3
+        fi
+    done
+    
+    if [ $SUCCESS -eq 0 ]; then
+        echo -e "${RED}✗ Error downloading model after $MAX_RETRIES attempts${NC}"
+        echo -e "${YELLOW}You can download it later with:${NC}"
+        echo "  1. Make sure Ollama is running: ollama serve"
+        echo "  2. Download model: ollama pull dolphin-llama3"
     fi
 fi
 
