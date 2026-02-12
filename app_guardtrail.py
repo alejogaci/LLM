@@ -14,13 +14,17 @@ app = Flask(__name__)
 
 # Configuración de Ollama (modelo local libre)
 OLLAMA_API = "http://localhost:11434/api/generate"
-MODEL = "llama3.2"
+MODEL = "dolphin-llama3"  # Dolphin Llama 3: sin filtros, ideal para datos técnicos
 
 # Configuración de Trend Micro AI Guard (GuardTrail)
-# SIEMPRE HABILITADO
-GUARDTRAIL_API_KEY = os.environ.get("V1_API_KEY", "")
+# ALWAYS ENABLED
 GUARDTRAIL_APP_NAME = os.environ.get("GUARDTRAIL_APP_NAME", "trend-ai-llm-app")
 GUARDTRAIL_API_URL = "https://api.xdr.trendmicro.com/beta/aiSecurity/guard?detailedResponse=false"
+
+# Function to get API key (reads fresh from environment each time)
+def get_guardtrail_api_key():
+    """Get API key from environment variable"""
+    return os.environ.get("V1_API_KEY", "")
 
 # Configurar Ollama para usar más CPU
 os.environ['OLLAMA_NUM_PARALLEL'] = '4'
@@ -36,21 +40,23 @@ CACHE_TTL = 20
 
 def run_guardtrail(text):
     """
-    Valida texto con Trend Micro AI Guard (GuardTrail)
-    Basado en el ejemplo oficial de Trend Micro
+    Validates text with Trend Micro AI Guard (GuardTrail)
+    Based on official Trend Micro example
     
     Returns:
-        dict: Respuesta de la API con campos 'action', 'id', 'reasons', etc.
+        dict: API response with 'action', 'id', 'reasons', etc.
     """
-    if not GUARDTRAIL_API_KEY:
+    api_key = get_guardtrail_api_key()
+    
+    if not api_key:
         print("[GuardTrail] ERROR: V1_API_KEY not configured!")
         return {"action": "Block", "error": "API key not configured"}
     
-    # Payload correcto según documentación de Trend Micro
+    # Correct payload according to Trend Micro documentation
     payload = {"guard": text}
     
     headers = {
-        "Authorization": f"Bearer {GUARDTRAIL_API_KEY}",
+        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
     
@@ -333,14 +339,14 @@ def chat():
             # Verificar si fue bloqueado
             if guard_result.get("action") == "Block":
                 reasons = guard_result.get("reasons", [])
-                reason_text = ", ".join(reasons) if reasons else guard_result.get("error", "Violación de políticas de seguridad")
+                reason_text = ", ".join(reasons) if reasons else guard_result.get("error", "Security policy violation")
                 
                 # Mensaje bloqueado por GuardTrail
                 blocked_message = {
                     "blocked": True,
-                    "message": "⚠️ Lo sentimos, su mensaje viola las políticas de seguridad internas.\n\n"
-                               "🔒 Este aplicativo está siendo asegurado por Trend AI Guard.\n\n"
-                               f"Razón: {reason_text}",
+                    "message": "⚠️ Sorry, your message violates internal security policies.\n\n"
+                               "🔒 This application is secured by Trend AI Guard.\n\n"
+                               f"Reason: {reason_text}",
                     "guardtrail": True
                 }
                 yield f"data: {json.dumps(blocked_message)}\n\n"
@@ -378,8 +384,7 @@ Responde:"""
                 "prompt": enhanced_prompt,
                 "stream": True,
                 "options": {
-                    "num_thread": 8,
-                    "num_gpu": 0,
+                    "num_thread": 2,  # Reducido para 4 CPUs
                     "num_ctx": 2048
                 }
             }
@@ -390,10 +395,12 @@ Responde:"""
             for line in response.iter_lines():
                 if line:
                     json_response = json.loads(line)
+                    # Ollama API usa 'response' en streaming
                     if 'response' in json_response:
-                        token = json_response['response']
-                        llm_response_text += token
-                        yield f"data: {json.dumps({'token': token})}\n\n"
+                        content = json_response['response']
+                        if content:
+                            llm_response_text += content
+                            yield f"data: {json.dumps({'token': content})}\n\n"
                     
                     if json_response.get('done', False):
                         break
@@ -409,7 +416,7 @@ Responde:"""
                 # La respuesta del LLM fue bloqueada
                 blocked_llm_message = {
                     "blocked": True,
-                    "message": "\n\n⚠️ [La respuesta fue bloqueada por Trend AI Guard por violar políticas de seguridad]",
+                    "message": "\n\n⚠️ [Response was blocked by Trend AI Guard for violating security policies]",
                     "guardtrail": True
                 }
                 yield f"data: {json.dumps(blocked_llm_message)}\n\n"
@@ -466,15 +473,23 @@ if __name__ == '__main__':
     print("="*50)
     print("GuardTrail: ALWAYS ENABLED")
     print(f"App Name: {GUARDTRAIL_APP_NAME}")
-    print(f"API Key: {'Configured' if GUARDTRAIL_API_KEY else 'NOT CONFIGURED'}")
+    
+    # Get API key status
+    api_key = get_guardtrail_api_key()
+    print(f"API Key: {'Configured' if api_key else 'NOT CONFIGURED'}")
+    
     print(f"API URL: {GUARDTRAIL_API_URL}")
     print(f"Validation: INPUT + OUTPUT")
-    if not GUARDTRAIL_API_KEY:
+    
+    if not api_key:
         print("="*50)
         print("⚠️  WARNING: V1_API_KEY not set!")
         print("All requests will be BLOCKED")
         print("Set: export V1_API_KEY=\"your-key\"")
         print("="*50)
+    else:
+        print(f"API Key Preview: {api_key[:20]}...")
+    
     print("="*50)
     print()
     
