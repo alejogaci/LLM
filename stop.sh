@@ -1,39 +1,39 @@
 #!/bin/bash
 
 echo "=========================================="
-echo "  Trend Micro AI - Deteniendo Aplicación"
+echo "  Trend Micro AI - Stopping Application"
 echo "=========================================="
 echo ""
 
-# Colores
+# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-# 1. Detener aplicación Flask
-echo -e "${YELLOW}[1/2] Deteniendo aplicación Flask...${NC}"
+# 1. Stop Flask application
+echo -e "${YELLOW}[1/2] Stopping Flask application...${NC}"
 if lsof -ti:5000 > /dev/null 2>&1; then
     kill -9 $(lsof -ti:5000) 2>/dev/null
     sleep 1
-    echo -e "${GREEN}✓ Aplicación detenida${NC}"
+    echo -e "${GREEN}✓ Application stopped${NC}"
 else
-    echo -e "${YELLOW}! Aplicación no está corriendo${NC}"
+    echo -e "${YELLOW}! Application not running${NC}"
 fi
 
-# 2. Detener Ollama
+# 2. Stop Ollama
 echo ""
-echo -e "${YELLOW}[2/2] Deteniendo Ollama...${NC}"
+echo -e "${YELLOW}[2/2] Stopping Ollama...${NC}"
 if pgrep -x "ollama" > /dev/null; then
     pkill -9 ollama
     sleep 1
-    echo -e "${GREEN}✓ Ollama detenido${NC}"
+    echo -e "${GREEN}✓ Ollama stopped${NC}"
 else
-    echo -e "${YELLOW}! Ollama no está corriendo${NC}"
+    echo -e "${YELLOW}! Ollama not running${NC}"
 fi
 
 echo ""
 echo -e "${GREEN}=========================================${NC}"
-echo -e "${GREEN}  Todo detenido${NC}"
+echo -e "${GREEN}  Everything stopped${NC}"
 echo -e "${GREEN}=========================================${NC}"
 echo ""
