@@ -1,53 +1,60 @@
 #!/bin/bash
 
 echo "=========================================="
-echo "  Iniciando - CON AI Guard"
+echo "  Starting - WITH AI Guard"
 echo "=========================================="
 echo ""
 
-# Verificar API Key
+# Verify API Key
 if [ -z "$V1_API_KEY" ]; then
-    echo "⚠️  ERROR: V1_API_KEY no configurado"
+    echo "⚠️  ERROR: V1_API_KEY not configured"
     echo ""
-    echo "Configura tu API Key:"
-    echo "  export V1_API_KEY=\"tu-api-key\""
+    echo "Configure your API Key:"
+    echo "  export V1_API_KEY=\"your-api-key\""
     echo ""
-    echo "O ejecuta setup.sh de nuevo"
+    echo "Or run setup.sh again"
     exit 1
 fi
 
-# Cargar configuración si existe
+# Load configuration if exists
 if [ -f ~/.guardtrail_config ]; then
     source ~/.guardtrail_config
 fi
 
-# Detectar CPUs
+# Detect CPUs
 CPU_CORES=$(nproc)
 NUM_THREADS=$((CPU_CORES / 2))
 if [ $NUM_THREADS -gt 8 ]; then
     NUM_THREADS=8
 fi
 
-# Configurar variables
+# Configure variables
 export OLLAMA_NUM_PARALLEL=4
 export OLLAMA_MAX_LOADED_MODELS=1
 export OLLAMA_KEEP_ALIVE=5m
 export OLLAMA_NUM_THREAD=$NUM_THREADS
 
-# Crear directorio de logs
+# Create logs directory
 mkdir -p logs
 
-# Activar venv
+# Activate venv
 source venv/bin/activate
 
-echo "Configuración:"
+echo "Configuration:"
 echo "  CPUs: $CPU_CORES"
 echo "  Threads: $NUM_THREADS"
-echo "  AI Guard: HABILITADO"
-echo "  Puerto: 5000"
+echo "  AI Guard: ENABLED"
+echo "  Port: 5000"
 echo ""
 
-# Ejecutar app_guardtrail.py
+# Start Ollama if not running
+if ! pgrep -x "ollama" > /dev/null 2>&1; then
+    echo "Starting Ollama..."
+    nohup ollama serve > logs/ollama.log 2>&1 &
+    sleep 3
+fi
+
+# Run app_guardtrail.py
 nohup python3 app_guardtrail.py > logs/app.log 2>&1 &
 PID=$!
 echo $PID > logs/app.pid
@@ -55,12 +62,12 @@ echo $PID > logs/app.pid
 sleep 2
 
 if ps -p $PID > /dev/null; then
-    echo "✓ Aplicación iniciada (PID: $PID)"
+    echo "✓ Application started (PID: $PID)"
     echo ""
-    echo "Acceder: http://localhost:5000"
+    echo "Access: http://localhost:5000"
     echo "Logs: tail -f logs/app.log"
-    echo "Detener: ./stop.sh"
+    echo "Stop: ./stop.sh"
 else
-    echo "✗ Error al iniciar"
+    echo "✗ Error starting application"
     cat logs/app.log
 fi
