@@ -1,41 +1,41 @@
 #!/bin/bash
 
 echo "=========================================="
-echo "  Trend Micro AI - Iniciando Aplicación"
+echo "  Trend Micro AI - Starting Application"
 echo "=========================================="
 echo ""
 
-# Colores
+# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-# Verificar que existe venv
+# Verify venv exists
 if [ ! -d "venv" ]; then
-    echo -e "${RED}✗ Setup no completado${NC}"
-    echo "Ejecuta primero: ./setup.sh"
+    echo -e "${RED}✗ Setup not completed${NC}"
+    echo "Run first: ./setup.sh"
     exit 1
 fi
 
-# Crear carpeta de logs si no existe
+# Create logs folder if doesn't exist
 mkdir -p logs
 touch logs/ollama.log
 touch logs/app.log
 
-# Cargar configuración optimizada de Ollama si existe
+# Load optimized Ollama configuration if exists
 if [ -f ~/.ollama_env ]; then
     source ~/.ollama_env
-    echo -e "${GREEN}✓ Configuración optimizada de Ollama cargada${NC}"
+    echo -e "${GREEN}✓ Optimized Ollama configuration loaded${NC}"
 fi
 
-# Configurar variables de entorno para rendimiento
+# Configure environment variables for performance
 export OLLAMA_NUM_PARALLEL=4
 export OLLAMA_MAX_LOADED_MODELS=1
 export OLLAMA_KEEP_ALIVE=5m
 
-# Detectar CPUs y configurar threads
+# Detect CPUs and configure threads
 CPU_CORES=$(nproc)
 NUM_THREADS=$((CPU_CORES / 2))
 if [ $NUM_THREADS -gt 8 ]; then
@@ -43,40 +43,40 @@ if [ $NUM_THREADS -gt 8 ]; then
 fi
 export OLLAMA_NUM_THREAD=$NUM_THREADS
 
-echo -e "${BLUE}Configuración de rendimiento:${NC}"
-echo -e "  CPUs disponibles: $CPU_CORES"
-echo -e "  Threads para Ollama: $NUM_THREADS"
+echo -e "${BLUE}Performance configuration:${NC}"
+echo -e "  Available CPUs: $CPU_CORES"
+echo -e "  Threads for Ollama: $NUM_THREADS"
 echo ""
 
-# Activar entorno virtual
+# Activate virtual environment
 source venv/bin/activate
 
-# 1. Iniciar Ollama en segundo plano
-echo -e "${YELLOW}[1/2] Iniciando Ollama...${NC}"
+# 1. Start Ollama in background
+echo -e "${YELLOW}[1/2] Starting Ollama...${NC}"
 if pgrep -x "ollama" > /dev/null 2>&1; then
-    echo -e "${GREEN}✓ Ollama ya está corriendo${NC}"
+    echo -e "${GREEN}✓ Ollama already running${NC}"
 else
     nohup ollama serve > logs/ollama.log 2>&1 &
     OLLAMA_PID=$!
     sleep 3
     
     if pgrep -x "ollama" > /dev/null 2>&1; then
-        echo -e "${GREEN}✓ Ollama iniciado (PID: $OLLAMA_PID)${NC}"
+        echo -e "${GREEN}✓ Ollama started (PID: $OLLAMA_PID)${NC}"
     else
-        echo -e "${RED}✗ Error al iniciar Ollama${NC}"
-        echo "Revisa logs/ollama.log"
+        echo -e "${RED}✗ Error starting Ollama${NC}"
+        echo "Check logs/ollama.log"
         exit 1
     fi
 fi
 
-# 2. Iniciar aplicación Flask en segundo plano
+# 2. Start Flask application in background
 echo ""
-echo -e "${YELLOW}[2/2] Iniciando aplicación Flask...${NC}"
+echo -e "${YELLOW}[2/2] Starting Flask application...${NC}"
 
-# Verificar si puerto 5000 está en uso
+# Check if port 5000 is in use
 if command -v lsof &> /dev/null; then
     if lsof -ti:5000 > /dev/null 2>&1; then
-        echo -e "${YELLOW}! Puerto 5000 en uso, deteniendo proceso anterior...${NC}"
+        echo -e "${YELLOW}! Port 5000 in use, stopping previous process...${NC}"
         kill -9 $(lsof -ti:5000) 2>/dev/null
         sleep 2
     fi
@@ -86,29 +86,30 @@ nohup python3 app.py > logs/app.log 2>&1 &
 APP_PID=$!
 sleep 3
 
-# Verificar que la app está corriendo
+# Verify app is running
 if ps -p $APP_PID > /dev/null 2>&1; then
-    echo -e "${GREEN}✓ Aplicación iniciada (PID: $APP_PID)${NC}"
+    echo -e "${GREEN}✓ Application started (PID: $APP_PID)${NC}"
 else
-    echo -e "${RED}✗ Error al iniciar aplicación${NC}"
-    echo "Revisa logs/app.log para más detalles"
+    echo -e "${RED}✗ Error starting application${NC}"
+    echo "Check logs/app.log for details"
     exit 1
 fi
 
 echo ""
 echo -e "${GREEN}=========================================${NC}"
-echo -e "${GREEN}  ¡Aplicación funcionando!${NC}"
+echo -e "${GREEN}  Application running!${NC}"
 echo -e "${GREEN}=========================================${NC}"
 echo ""
-echo -e "${BLUE}Acceso:${NC}           http://localhost:5000"
-echo -e "${BLUE}Logs Ollama:${NC}      tail -f logs/ollama.log"
-echo -e "${BLUE}Logs App:${NC}         tail -f logs/app.log"
+echo -e "${BLUE}Access:${NC}           http://localhost:5000"
+echo -e "${BLUE}Ollama Logs:${NC}      tail -f logs/ollama.log"
+echo -e "${BLUE}App Logs:${NC}         tail -f logs/app.log"
 echo ""
-echo -e "${BLUE}Rendimiento:${NC}"
-echo -e "  ⚡ Usando $NUM_THREADS threads de CPU"
-echo -e "  ⚡ Procesamiento paralelo activado"
-echo -e "  ⚡ Modelo mantenido en memoria"
+echo -e "${BLUE}Performance:${NC}"
+echo -e "  ⚡ Using $NUM_THREADS CPU threads"
+echo -e "  ⚡ Parallel processing enabled"
+echo -e "  ⚡ Model kept in memory"
 echo ""
-echo -e "${YELLOW}Para detener:${NC}     ./stop.sh"
-echo -e "${YELLOW}Para ver estado:${NC}  ./status.sh"
+echo -e "${YELLOW}To stop:${NC}          ./stop.sh"
+echo -e "${YELLOW}To view status:${NC}   ./status.sh"
 echo ""
+
